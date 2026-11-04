@@ -1,0 +1,47 @@
+name: Sync StreamEast Live Streams to Firebase
+
+on:
+  schedule:
+    # Otomatis berjalan setiap 30 menit
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Tombol manual "Run workflow" di GitHub Actions
+
+jobs:
+  sync-breast:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout Repo Publik / Caller ini (tempat workflow berada)
+      - name: Checkout Public Repository
+        uses: actions/checkout@v4
+
+      # 2. Checkout Repo Private yang berisi breast.py menggunakan GH_PAT
+      - name: Checkout Private Core Scraper
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.PRIVATE_REPO_NAME }} # Contoh Secret: Username/NamaRepoPrivate
+          token: ${{ secrets.GH_PAT }}                 # GitHub Personal Access Token yang memiliki hak akses repo private
+          path: private_core                           # Folder sementara tempat script ditarik
+
+      # 3. Setup Lingkungan Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 4. Install Dependencies
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 pillow firebase-admin
+
+      # 5. Jalankan breast.py dari folder private
+      - name: Ekstraksi StreamEast via breast.py & Push ke Firebase
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          BREAST_CATEGORY_ID: ${{ secrets.BREAST_CATEGORY_ID || '-topLiveSports' }}
+          BREAST_CATEGORY_NAME: ${{ secrets.BREAST_CATEGORY_NAME || 'TOP LIVE SPORTS' }}
+          BREAST_CATEGORY_ORDER: ${{ secrets.BREAST_CATEGORY_ORDER || '2' }}
+        run: python private_core/breast.py
+
