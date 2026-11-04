@@ -1,4 +1,4 @@
-name: Sync StreamEast Live Streams to Firebase
+name: Breast
 
 on:
   schedule:
